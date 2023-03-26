@@ -2,29 +2,25 @@ const WebSocket = require("ws");
 const wss = new WebSocket.Server({port: 8082});
 let connectedClients = [];
 
+// When a client connects
 wss.on("connection", (ws) => {
+    // When a client sends a message
     ws.on("message", (message) => {
+        // Parse the message because it's received as a string (JSON.stringify)
         const data = JSON.parse(message);
 
         // Client sent a connection
         if (data.type === "connection") {
-            // connectedClients.push(data.content);
-            // console.log(`Client with ID ${data.content.id} connected`);
-            if (
-                !connectedClients.find(
-                    (client) => client.id === data.content.id
-                )
-            ) {
-                connectedClients.push(data.content);
-                console.log(`Client with ID ${data.content.id} connected`);
-            } else {
-                console.log(
-                    `Client with ID ${data.content.id} already connected`
-                );
-            }
+            const user = connectedClients.find(
+                (client) => client.id === data.content.id
+            );
+
+            if (user)
+                console.log(`Client with ID ${data.content.id} reconnected`);
+            else console.log(`Client with ID ${data.content.id} connected`);
         }
 
-        // Client sent a message
+        // Client sent a message from the chat
         if (data.type === "message") {
             wss.clients.forEach((client) => {
                 if (client.readyState === WebSocket.OPEN) {
@@ -42,7 +38,3 @@ wss.on("connection", (ws) => {
         }
     });
 });
-
-// setInterval(() => {
-//     console.log(connectedClients);
-// }, 1000);
