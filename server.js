@@ -1,40 +1,96 @@
 const WebSocket = require("ws");
 const wss = new WebSocket.Server({port: 8082});
-let connectedClients = [];
+const link = `ws://localhost:${wss.address().port}`;
+console.log(`Server started at ${link}`);
 
-// When a client connects
+const connectedClients = new Map();
+
+// Connection
 wss.on("connection", (ws) => {
-    // When a client sends a message
+    // Message
     ws.on("message", (message) => {
-        // Parse the message because it's received as a string (JSON.stringify)
-        const data = JSON.parse(message);
+        try {
+            // Parse message
+            const data = JSON.parse(message);
 
-        // Client sent a connection
-        if (data.type === "connection") {
-            const user = connectedClients.find(
-                (client) => client.id === data.content.id
-            );
+            // Connection
+            if (data.type === "connection") {
+                const clientId = data.content.id;
+                const user = connectedClients.get(clientId);
 
-            if (user)
-                console.log(`Client with ID ${data.content.id} reconnected`);
-            else console.log(`Client with ID ${data.content.id} connected`);
-        }
-
-        // Client sent a message from the chat
-        if (data.type === "message") {
-            wss.clients.forEach((client) => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify(data));
+                // Reconnection
+                if (user) {
+                    console.log(`Client with ID ${clientId} reconnected`);
+                    user.connection = ws;
+                } else {
+                    // New connection
+                    console.log(`Client with ID ${clientId} connected`);
+                    connectedClients.set(clientId, {
+                        id: clientId,
+                        name: data.content.name,
+                        created_at: data.content.created_at,
+                        connection: ws,
+                    });
                 }
-            });
-        }
 
-        // Client sent a disconnection
-        if (data.type === "disconnection") {
-            connectedClients = connectedClients.filter(
-                (client) => client.id !== data.content.id
+                // Send current number of connected clients
+                wss.clients.forEach((client) => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(
+                            JSON.stringify({
+                                type: "connected_users",
+                                content: connectedClients.size,
+                            })
+                        );
+                    }
+                });
+            } else if (data.type === "message") {
+                broadcastMessage(data);
+            }
+        } catch (error) {
+            console.error(error);
+            ws.send(
+                JSON.stringify({
+                    type: "error",
+                    content: "Invalid message format",
+                })
             );
-            console.log(`Client with ID ${data.content.id} disconnected`);
+        }
+    });
+
+    // Disconnection
+    ws.on("close", () => {
+        // Remove client from connected clients
+        for (const [clientId, user] of connectedClients) {
+            // If the client is the one that disconnected
+            if (user.connection === ws) {
+                // Remove client from connected clients and log disconnection
+                connectedClients.delete(clientId);
+                console.log(`Client with ID ${clientId} disconnected`);
+
+                // Send current number of connected clients
+                wss.clients.forEach((client) => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(
+                            JSON.stringify({
+                                type: "connected_users",
+                                content: connectedClients.size,
+                            })
+                        );
+                    }
+                });
+
+                break;
+            }
         }
     });
 });
+
+// Broadcast message to all connected clients
+function broadcastMessage(data) {
+    for (const [, user] of connectedClients) {
+        if (user.connection.readyState === WebSocket.OPEN) {
+            user.connection.send(JSON.stringify(data));
+        }
+    }
+}
