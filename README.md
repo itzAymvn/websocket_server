@@ -1,6 +1,6 @@
 # WebSocket Server
 
-This is a websocket server written in [Node.js](http://nodejs.org/). It's used to receive messages and broadcast them to all connected [clients]()
+This is a websocket server written in [Node.js](http://nodejs.org/). It's used to receive messages and broadcast them to all connected [clients](https://github.com/itzAymvn/websocket_client)
 
 ## Requirements
 
