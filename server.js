@@ -24,7 +24,9 @@ wss.on("connection", (ws) => {
                     user.connection = ws;
                 } else {
                     // New connection
-                    console.log(`Client with ID ${clientId} connected`);
+                    console.log(
+                        `New connection: ID ${clientId}, name ${data.content.name}`
+                    );
                     connectedClients.set(clientId, {
                         id: clientId,
                         name: data.content.name,
@@ -36,10 +38,20 @@ wss.on("connection", (ws) => {
                 // Send current number of connected clients
                 wss.clients.forEach((client) => {
                     if (client.readyState === WebSocket.OPEN) {
+                        // array of connected users(id, name, created_at)
+                        const connectedNames = [];
+                        for (const [, user] of connectedClients) {
+                            connectedNames.push({
+                                id: user.id,
+                                name: user.name,
+                                created_at: user.created_at,
+                            });
+                        }
+
                         client.send(
                             JSON.stringify({
                                 type: "connected_users",
-                                content: connectedClients.size,
+                                content: connectedNames,
                             })
                         );
                     }
@@ -66,15 +78,25 @@ wss.on("connection", (ws) => {
             if (user.connection === ws) {
                 // Remove client from connected clients and log disconnection
                 connectedClients.delete(clientId);
-                console.log(`Client with ID ${clientId} disconnected`);
+                console.log(
+                    `Disconnected client with ID ${clientId}, name ${user.name}`
+                );
 
                 // Send current number of connected clients
                 wss.clients.forEach((client) => {
                     if (client.readyState === WebSocket.OPEN) {
+                        const connectedNames = [];
+                        for (const [, user] of connectedClients) {
+                            connectedNames.push({
+                                id: user.id,
+                                name: user.name,
+                                created_at: user.created_at,
+                            });
+                        }
                         client.send(
                             JSON.stringify({
                                 type: "connected_users",
-                                content: connectedClients.size,
+                                content: connectedNames,
                             })
                         );
                     }
