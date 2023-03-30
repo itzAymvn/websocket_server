@@ -31,6 +31,7 @@ wss.on("connection", (ws) => {
                         id: clientId,
                         name: data.content.name,
                         created_at: data.content.created_at,
+                        image: data.content.image,
                         connection: ws,
                     });
                 }
@@ -45,6 +46,7 @@ wss.on("connection", (ws) => {
                                 id: user.id,
                                 name: user.name,
                                 created_at: user.created_at,
+                                image: user.image,
                             });
                         }
 
@@ -91,6 +93,7 @@ wss.on("connection", (ws) => {
                                 id: user.id,
                                 name: user.name,
                                 created_at: user.created_at,
+                                image: user.image,
                             });
                         }
                         client.send(
